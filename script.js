@@ -72,12 +72,13 @@ function fetchingAndRendering(url){
 fetchingAndRendering('https://api.themoviedb.org/3/movie/popular?language=en-US&page=1')
 
 window.addEventListener('scroll', function() {
+    const loadingToast = document.querySelector('.loading-toast')
     if (window.innerHeight + window.scrollY >= document.documentElement.scrollHeight - 30) {
-        if (!document.getElementById('bottom-message')) {
+        if (loadingToast.classList.contains('is-hidden')) {
 
             compteurPage++;
             fetchingAndRendering(`https://api.themoviedb.org/3/movie/popular?language=en-US&page=${compteurPage}`)
-            const loadingToast = document.querySelector('.loading-toast')
+            
             loadingToast.classList.remove('is-hidden');
             setTimeout(() => {
                 loadingToast.classList.add('is-hidden');
