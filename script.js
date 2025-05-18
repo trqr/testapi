@@ -1,5 +1,6 @@
+import * as filmPage from './renderFilmPage.js'
 
-
+export let currentFilm = [];
 let fetchedData = [];
 let allMoviesData = [];
 let compteurPage = 1;
@@ -11,7 +12,7 @@ let html = ""
 allMoviesData.forEach(element => {
     html += 
     `
-    <div class="card cell">
+    <div class="card">
         <div class="card-image">
             <figure class="image">
             <img
@@ -40,13 +41,15 @@ allMoviesData.forEach(element => {
             ${element.overview}
             <br />
             <time datetime="${element.release_date}">${element.release_date}</time>
+            <button class="button film-button" data-id="${element.id}">Plus d'infos</button>
             </div>
+        
         </div>
     </div>
     `
 });
     document.querySelector('.cards-container').innerHTML = html;
-
+    ListeningFilmButtonsAndFetching();
 };
 
 const options = {
@@ -71,6 +74,30 @@ function fetchingAndRendering(url){
 
 fetchingAndRendering('https://api.themoviedb.org/3/movie/popular?language=en-US&page=1')
 
+function fetchingAndGoingToFilmPage(filmId) {
+    fetch(`https://api.themoviedb.org/3/movie/${filmId}?language=en-US`, options)
+        .then(res => res.json())
+        .then(res => {
+            currentFilm = res;
+            console.log('Data stored in variable:', currentFilm);
+            // rediriger ou afficher la fiche ici
+        })
+        .catch(err => console.error(err));
+}
+window.fetchingAndGoingToFilmPage = fetchingAndGoingToFilmPage;
+
+function ListeningFilmButtonsAndFetching(){
+    const buttons = document.querySelectorAll('.film-button');
+    buttons.forEach(button => {
+        button.addEventListener('click', () => {
+            const filmId = button.dataset.id;
+            fetchingAndGoingToFilmPage(filmId)
+            console.log(currentFilm);
+            filmPage.renderFilmPage();
+        });
+    });
+}
+
 window.addEventListener('scroll', function() {
     const loadingToast = document.querySelector('.loading-toast')
     if (window.innerHeight + window.scrollY >= document.documentElement.scrollHeight - 30) {
@@ -86,4 +113,3 @@ window.addEventListener('scroll', function() {
         }
     }
 });
-
