@@ -1,15 +1,22 @@
 import * as filmPage from './renderFilmPage.js'
 
 export let currentFilm = [];
-let fetchedData = [];
+// let fetchedData = []; // Removed
 let allMoviesData = [];
-let compteurPage = 1;
+let movieGenres = [];
+let compteurPage = 1; // Should be 1 as it's often used as the initial page
+let currentApiParams = { query: null, genreId: null };
 
-function renderCards(){
+function renderCards(moviesToRender) {
+    const cardsContainer = document.querySelector('.cards-container');
+    if (!cardsContainer) {
+        console.error("Cards container not found!");
+        return;
+    }
+    cardsContainer.innerHTML = ''; // Clear existing cards
 
-let html = ""
-
-allMoviesData.forEach(element => {
+    let html = "";
+    moviesToRender.forEach(element => {
     html += 
     `
     <div class="card">
@@ -48,9 +55,9 @@ allMoviesData.forEach(element => {
     </div>
     `
 });
-    document.querySelector('.cards-container').innerHTML = html;
+    cardsContainer.innerHTML = html;
     ListeningFilmButtonsAndFetching();
-};
+}
 
 const options = {
   method: 'GET',
@@ -60,19 +67,166 @@ const options = {
   }
 };
 
-function fetchingAndRendering(url){
-    fetch(url, options)
-        .then(res => res.json())
-        .then(res => {
-            fetchedData = res.results;
-            fetchedData.forEach(movie => allMoviesData.push(movie))
-            console.log('Data stored in variable:', allMoviesData);
-            renderCards()
-        })
-        .catch(err => console.error(err));
-    }
+function buildApiUrl(page = 1) {
+    const baseUrl = 'https://api.themoviedb.org/3';
+    let endpoint = '/movie/popular';
+    const queryParams = new URLSearchParams({ language: 'en-US', page: page.toString() });
 
-fetchingAndRendering('https://api.themoviedb.org/3/movie/popular?language=en-US&page=1')
+    if (currentApiParams.query) {
+        endpoint = '/search/movie';
+        queryParams.set('query', currentApiParams.query);
+    } else if (currentApiParams.genreId) {
+        endpoint = '/discover/movie';
+        queryParams.set('with_genres', currentApiParams.genreId);
+        queryParams.set('sort_by', 'popularity.desc');
+    }
+    // If neither query nor genreId, it defaults to popular movies as endpoint is pre-set.
+    return `${baseUrl}${endpoint}?${queryParams.toString()}`;
+}
+
+async function fetchMovies(page = 1, isLoadMore = false) {
+    const url = buildApiUrl(page);
+    // console.log(`Fetching URL: ${url}`);
+    const loadingToast = document.querySelector('.loading-toast'); // For load more
+    if (isLoadMore && loadingToast) loadingToast.classList.remove('is-hidden');
+
+    try {
+        const response = await fetch(url, options);
+        if (!response.ok) {
+            throw new Error(`HTTP error! status: ${response.status}`);
+        }
+        const data = await response.json();
+        const newMovies = data.results;
+
+        if (!newMovies || newMovies.length === 0) {
+            if (!isLoadMore) {
+                // This means it's a new search/filter with no results
+                allMoviesData = []; // Clear existing data
+                renderCards(allMoviesData); // Render empty state (or a message)
+                console.log('No movies found for the current criteria.');
+                // Optionally, display a "No results found" message in cardsContainer
+                const cardsContainer = document.querySelector('.cards-container');
+                if (cardsContainer) cardsContainer.innerHTML = '<p class="has-text-centered">No movies found matching your criteria.</p>';
+            } else {
+                // No more movies to load for current criteria
+                console.log('No more movies to load.');
+                 if(loadingToast) loadingToast.innerHTML = "No more movies to load."; // Inform user
+            }
+            if (loadingToast && !isLoadMore) loadingToast.classList.add('is-hidden'); // Hide if it was a fresh load
+            return; // Exit if no new movies
+        }
+
+        if (isLoadMore) {
+            allMoviesData.push(...newMovies);
+        } else {
+            allMoviesData = newMovies;
+            compteurPage = 1; // Reset page counter for a new dataset
+        }
+
+        renderCards(allMoviesData);
+        console.log('Data stored in variable:', allMoviesData);
+        // compteurPage should reflect the page number that was just fetched and rendered.
+        // For a new load (isLoadMore = false), page is 1.
+        // For load more, page is the next page number.
+        // The global compteurPage will be updated by the caller for isLoadMore cases.
+        // For new loads, it's reset to 1 above.
+        // Let's ensure compteurPage is correctly reflecting the *last successfully loaded page*
+        // for the current dataset.
+        // No, the logic is: if isLoadMore is false, compteurPage is reset to 1.
+        // If isLoadMore is true, the calling function (scroll listener) has already incremented compteurPage.
+        // So this function doesn't need to set compteurPage if isLoadMore is true.
+        // It *does* set it to 1 if isLoadMore is false.
+        // The parameter 'page' is the page that was *requested*.
+
+    } catch (error) {
+        console.error('Error fetching movies:', error);
+        // Optionally, display an error message to the user
+        const cardsContainer = document.querySelector('.cards-container');
+        if (cardsContainer && !isLoadMore) cardsContainer.innerHTML = '<p class="has-text-centered">Error loading movies. Please try again later.</p>';
+    } finally {
+        if (isLoadMore && loadingToast) {
+             setTimeout(() => { // Keep the "no more movies" message if applicable
+                if (loadingToast.innerHTML !== "No more movies to load."){
+                    loadingToast.classList.add('is-hidden');
+                }
+            }, 2000);
+        }
+    }
+}
+
+async function fetchGenres() {
+    const genreUrl = 'https://api.themoviedb.org/3/genre/movie/list?language=en';
+    try {
+        const response = await fetch(genreUrl, options);
+        if (response.ok) {
+            const data = await response.json();
+            movieGenres = data.genres;
+            console.log('Movie genres fetched and stored:', movieGenres);
+            return true;
+        } else {
+            console.error('Error fetching genres:', response.status, response.statusText);
+            return false;
+        }
+    } catch (error) {
+        console.error('Error fetching genres:', error);
+        return false;
+    }
+}
+
+function renderGenreChips() {
+    const chipsContainer = document.getElementById('filter-chips-container');
+    if (chipsContainer && movieGenres && movieGenres.length > 0) {
+        chipsContainer.innerHTML = ''; // Clear existing chips
+        movieGenres.forEach(genre => {
+            const chip = document.createElement('a');
+            chip.classList.add('button', 'is-light', 'is-rounded');
+            chip.textContent = genre.name;
+            chip.dataset.genreId = genre.id;
+            // chip.style.marginRight = '0.5em'; // Removed
+            // chip.style.marginBottom = '0.5em'; // Removed
+
+            chip.addEventListener('click', () => {
+                // 1. Toggle active visual state
+                chip.classList.toggle('is-info');
+                chip.classList.toggle('is-light');
+
+                // 2. Collect all active genre IDs
+                const selectedGenreIds = [];
+                const allChips = chipsContainer.querySelectorAll('.button'); // Query within chipsContainer
+                allChips.forEach(c => {
+                    if (c.classList.contains('is-info')) { // Check for the active class
+                        selectedGenreIds.push(c.dataset.genreId);
+                    }
+                });
+
+                // 3. Update currentApiParams
+                if (selectedGenreIds.length > 0) {
+                    currentApiParams.genreId = selectedGenreIds.join(','); // Comma-separated for AND logic
+                    currentApiParams.query = null; // Clear search query
+
+                    // Clear search input field
+                    const searchInput = document.getElementById('search-input');
+                    if (searchInput) {
+                        searchInput.value = '';
+                    }
+                    // console.log(`Filtering by genres: ${currentApiParams.genreId}`);
+                } else {
+                    // No genres selected, revert to popular or default state
+                    currentApiParams.genreId = null;
+                    currentApiParams.query = null; // Ensure search is also cleared
+                    // console.log("No genres selected, fetching popular movies.");
+                }
+
+                // 4. Fetch movies with new filter
+                fetchMovies(1, false);
+            });
+            chipsContainer.appendChild(chip);
+        });
+    } else {
+        if (!chipsContainer) console.log("Filter chips container not found.");
+        if (!movieGenres || movieGenres.length === 0) console.log("Movie genres not available or empty.");
+    }
+}
 
 function fetchingAndGoingToFilmPage(filmId) {
     return fetch(`https://api.themoviedb.org/3/movie/${filmId}?language=en-US`, options)
@@ -127,17 +281,102 @@ window.addEventListener('scroll', function() {
     if (window.innerHeight + window.scrollY >= document.documentElement.scrollHeight - 30) {
         if (loadingToast.classList.contains('is-hidden')) {
 
-            compteurPage++;
-            fetchingAndRendering(`https://api.themoviedb.org/3/movie/popular?language=en-US&page=${compteurPage}`)
+            compteurPage++; // Increment current page
+            fetchMovies(compteurPage, true); // Fetch next page, append results
             
-            loadingToast.classList.remove('is-hidden');
-            setTimeout(() => {
-                loadingToast.classList.add('is-hidden');
-            }, 2000);
+            // Loading toast logic is now partially inside fetchMovies for isLoadMore=true
+            // but the initial show can be here if needed, or rely on fetchMovies to show it.
+            // fetchMovies shows it, so we might not need to explicitly show it here.
+            // Let's remove the direct manipulation of loadingToast from here as fetchMovies handles it.
+            // However, the original logic showed it *before* fetch, now fetchMovies shows it *during* fetch.
+            // For a better UX, show it immediately.
+            const loadingToastInstance = document.querySelector('.loading-toast');
+            if(loadingToastInstance) loadingToastInstance.classList.remove('is-hidden');
+            // fetchMovies will hide it or change its text.
         }
     }
 });
 
 if (window.location.pathname.endsWith('film.html')) {
     loadFilmPage();
+} else {
+    // This else block ensures this code only runs on index.html or other non-film.html pages
+    async function initializeIndexPage() {
+        const genresFetched = await fetchGenres();
+        if (genresFetched) {
+            renderGenreChips();
+        }
+        // Now fetch initial popular movies. compteurPage is 1 by default.
+        fetchMovies(compteurPage); // This will internally use page 1 and isLoadMore=false
+
+        // Setup search event listeners
+        const searchButton = document.getElementById('search-button');
+        if (searchButton) {
+            searchButton.addEventListener('click', handleSearch);
+        }
+
+        const searchInput = document.getElementById('search-input');
+        if (searchInput) {
+            searchInput.addEventListener('keypress', (event) => {
+                if (event.key === 'Enter') {
+                    handleSearch();
+                }
+            });
+        }
+
+        // Setup modal control event listeners
+        const navbarLoginButton = document.getElementById('navbar-login-button');
+        if (navbarLoginButton) {
+            navbarLoginButton.addEventListener('click', (event) => {
+                event.preventDefault(); // It's an <a> tag
+                toggleSignInModal();
+            });
+        }
+
+        const modalCloseButton = document.getElementById('signin-modal-close-button');
+        if (modalCloseButton) {
+            modalCloseButton.addEventListener('click', toggleSignInModal);
+        }
+
+        const modalCancelButton = document.getElementById('signin-modal-cancel-button');
+        if (modalCancelButton) {
+            modalCancelButton.addEventListener('click', toggleSignInModal);
+        }
+
+        const modalBackground = document.querySelector('#signin-modal .modal-background');
+        if (modalBackground) {
+            modalBackground.addEventListener('click', toggleSignInModal);
+        }
+    }
+    initializeIndexPage();
+}
+
+function toggleSignInModal() {
+    const modal = document.getElementById('signin-modal');
+    if (modal) {
+        modal.classList.toggle('is-active');
+    }
+}
+
+function handleSearch() {
+    const searchInput = document.getElementById('search-input');
+    const query = searchInput.value.trim();
+
+    // Clear active state of any genre chips
+    const activeChips = document.querySelectorAll('#filter-chips-container .button.is-info');
+    activeChips.forEach(chip => {
+        chip.classList.remove('is-info');
+        chip.classList.add('is-light'); // Reset to default style
+    });
+
+    if (query === "") {
+        currentApiParams.query = null;
+        currentApiParams.genreId = null; // Clear genre filter as well
+        // console.log("Empty search query, fetching popular movies.");
+    } else {
+        currentApiParams.query = query;
+        currentApiParams.genreId = null; // New search overrides genre filter
+        // console.log(`Searching for query: ${query}`);
+    }
+    fetchMovies(1, false); // Fetch page 1 of new results (not loading more)
 }
