@@ -75,14 +75,17 @@ function fetchingAndRendering(url){
 fetchingAndRendering('https://api.themoviedb.org/3/movie/popular?language=en-US&page=1')
 
 function fetchingAndGoingToFilmPage(filmId) {
-    fetch(`https://api.themoviedb.org/3/movie/${filmId}?language=en-US`, options)
+    return fetch(`https://api.themoviedb.org/3/movie/${filmId}?language=en-US`, options)
         .then(res => res.json())
         .then(res => {
-            currentFilm = res;
+            currentFilm = res; // Still update global currentFilm for other potential uses
             console.log('Data stored in variable:', currentFilm);
-            // rediriger ou afficher la fiche ici
+            return res; // Return the fetched data
         })
-        .catch(err => console.error(err));
+        .catch(err => {
+            console.error(err);
+            return null; // Return null or throw error on failure
+        });
 }
 window.fetchingAndGoingToFilmPage = fetchingAndGoingToFilmPage;
 
@@ -91,11 +94,32 @@ function ListeningFilmButtonsAndFetching(){
     buttons.forEach(button => {
         button.addEventListener('click', () => {
             const filmId = button.dataset.id;
-            fetchingAndGoingToFilmPage(filmId)
-            console.log(currentFilm);
-            filmPage.renderFilmPage();
+            //fetchingAndGoingToFilmPage(filmId) // This call is not needed here anymore as we navigate
+            //console.log(currentFilm); // currentFilm would not be updated yet anyway
+            window.location.href = `film.html?id=${filmId}`;
         });
     });
+}
+
+async function loadFilmPage() {
+    const urlParams = new URLSearchParams(window.location.search);
+    const filmId = urlParams.get('id');
+
+    if (filmId) {
+        const filmData = await fetchingAndGoingToFilmPage(filmId);
+        if (filmData) {
+            filmPage.renderFilmPage(filmData);
+        } else {
+            // Handle case where film data could not be fetched
+            console.error('Failed to load film data.');
+            // Optionally redirect or show an error message
+            // window.location.href = 'index.html';
+        }
+    } else {
+        console.error('No film ID found in URL.');
+        // Optionally redirect to index.html or show a message
+        // window.location.href = 'index.html';
+    }
 }
 
 window.addEventListener('scroll', function() {
@@ -113,3 +137,7 @@ window.addEventListener('scroll', function() {
         }
     }
 });
+
+if (window.location.pathname.endsWith('film.html')) {
+    loadFilmPage();
+}

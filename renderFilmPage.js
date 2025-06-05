@@ -1,13 +1,11 @@
-import { currentFilm } from "./script.js"
-
-export function renderFilmPage(){
-    document.querySelector('.cards-container').innerHTML = `
+export function renderFilmPage(filmData){
+    document.querySelector('.main-container').innerHTML = `
         <div class="card cell">
             <div class="card-image">
                 <figure class="image">
                 <img
-                    src="https://image.tmdb.org/t/p/w500${currentFilm.poster_path}"
-                    alt="${currentFilm.original_title}"
+                    src="https://image.tmdb.org/t/p/w500${filmData.poster_path}"
+                    alt="${filmData.original_title}"
                 />
                 </figure>
             </div>
@@ -16,21 +14,21 @@ export function renderFilmPage(){
                 <div class="media-left">
                     <figure class="image is-48x48">
                     <img
-                        src="https://image.tmdb.org/t/p/w500${currentFilm.backdrop_path}"
+                        src="https://image.tmdb.org/t/p/w500${filmData.backdrop_path}"
                         alt="Placeholder image"
                     />
                     </figure>
                 </div>
                 <div class="media-content">
-                    <p class="title is-4">${currentFilm.vote_count}</p>
-                    <p class="subtitle is-6">${currentFilm.vote_average}</p>
+                    <p class="title is-4">${filmData.vote_count}</p>
+                    <p class="subtitle is-6">${filmData.vote_average}</p>
                 </div>
                 </div>
 
                 <div class="content">
-                ${currentFilm.overview}
+                ${filmData.overview}
                 <br />
-                <time datetime="${currentFilm.release_date}">${currentFilm.release_date}</time>
+                <time datetime="${filmData.release_date}">${filmData.release_date}</time>
                 </div>
             </div>
         </div>
