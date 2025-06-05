@@ -77,6 +77,22 @@
   </div>
 </nav>
     </header>
+    <section class="section" id="carousel-section">
+      <div class="container">
+        <h2 class="title is-4 has-text-centered" style="margin-bottom: 1.5rem;">Top Popular Movies</h2>
+        <div class="carousel-container" id="top-movies-carousel">
+          <!-- Carousel items will be dynamically inserted here by JavaScript -->
+          <!-- Example of what an item might look like (for structure reference, not to be hardcoded):
+          <div class="carousel-item">
+            <figure class="image is-2by3">
+              <img src="https://image.tmdb.org/t/p/w300/poster_path.jpg" alt="Movie Title">
+            </figure>
+            <p class="has-text-centered is-size-7">Movie Title</p>
+          </div>
+          -->
+        </div>
+      </div>
+    </section>
     <section class="section">
       <div class="container">
         <div class="field has-addons">
@@ -126,6 +142,46 @@
         <footer class="modal-card-foot">
           <button class="button is-success" id="signin-button">Sign In</button>
           <button class="button" id="signin-modal-cancel-button">Cancel</button>
+        </footer>
+      </div>
+    </div>
+
+    <div class="modal" id="register-modal">
+      <div class="modal-background"></div>
+      <div class="modal-card">
+        <header class="modal-card-head">
+          <p class="modal-card-title">Register</p>
+          <button class="delete" aria-label="close" id="register-modal-close-button"></button>
+        </header>
+        <section class="modal-card-body">
+          <div class="field">
+            <label class="label" for="reg-username-input">Username</label>
+            <div class="control">
+              <input class="input" type="text" id="reg-username-input" placeholder="e.g. NewUser123">
+            </div>
+          </div>
+          <div class="field">
+            <label class="label" for="reg-email-input">Email</label>
+            <div class="control">
+              <input class="input" type="email" id="reg-email-input" placeholder="e.g. user@example.com">
+            </div>
+          </div>
+          <div class="field">
+            <label class="label" for="reg-password-input">Password</label>
+            <div class="control">
+              <input class="input" type="password" id="reg-password-input" placeholder="********">
+            </div>
+          </div>
+          <div class="field">
+            <label class="label" for="reg-confirm-password-input">Confirm Password</label>
+            <div class="control">
+              <input class="input" type="password" id="reg-confirm-password-input" placeholder="********">
+            </div>
+          </div>
+        </section>
+        <footer class="modal-card-foot">
+          <button class="button is-success" id="register-button">Register</button>
+          <button class="button" id="register-modal-cancel-button">Cancel</button>
         </footer>
       </div>
     </div>

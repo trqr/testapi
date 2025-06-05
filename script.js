@@ -4,6 +4,7 @@ export let currentFilm = [];
 // let fetchedData = []; // Removed
 let allMoviesData = [];
 let movieGenres = [];
+let topPopularMovies = [];
 let compteurPage = 1; // Should be 1 as it's often used as the initial page
 let currentApiParams = { query: null, genreId: null };
 
@@ -48,7 +49,11 @@ function renderCards(moviesToRender) {
             ${element.overview}
             <br />
             <time datetime="${element.release_date}">${element.release_date}</time>
-            <button class="button film-button" data-id="${element.id}">Plus d'infos</button>
+            <button class="button film-button" data-id="${element.id}" style="margin-top: 0.5rem;">Plus d'infos</button>
+            <button class="button is-small like-button" data-movie-id="${element.id}" aria-label="Like ${element.original_title}" style="margin-top: 0.5rem;">
+              <span class="icon is-small"><i class="fas fa-heart"></i></span>
+              <span>Like</span>
+            </button>
             </div>
         
         </div>
@@ -263,6 +268,34 @@ async function loadFilmPage() {
         const filmData = await fetchingAndGoingToFilmPage(filmId);
         if (filmData) {
             filmPage.renderFilmPage(filmData);
+
+            // Delegated event listener for "Like" button on film.html
+            const mainDetailContainer = document.querySelector('.main-container');
+            if (mainDetailContainer) {
+                mainDetailContainer.addEventListener('click', function(event) {
+                    const likeButton = event.target.closest('.like-button');
+                    if (likeButton) {
+                        handleLikeButtonClick(event);
+                    }
+                });
+            }
+
+            // Setup modal control event listeners for Register Modal (on film.html)
+            const registerModalCloseButtonFilm = document.getElementById('register-modal-close-button');
+            if (registerModalCloseButtonFilm) {
+                registerModalCloseButtonFilm.addEventListener('click', () => toggleModal('register-modal'));
+            }
+
+            const registerModalCancelButtonFilm = document.getElementById('register-modal-cancel-button');
+            if (registerModalCancelButtonFilm) {
+                registerModalCancelButtonFilm.addEventListener('click', () => toggleModal('register-modal'));
+            }
+
+            const registerModalBackgroundFilm = document.querySelector('#register-modal .modal-background');
+            if (registerModalBackgroundFilm) {
+                registerModalBackgroundFilm.addEventListener('click', () => toggleModal('register-modal'));
+            }
+
         } else {
             // Handle case where film data could not be fetched
             console.error('Failed to load film data.');
@@ -302,6 +335,10 @@ if (window.location.pathname.endsWith('film.html')) {
 } else {
     // This else block ensures this code only runs on index.html or other non-film.html pages
     async function initializeIndexPage() {
+        const popularFetched = await fetchTopPopularMovies(); // Fetch top popular for carousel
+        if (popularFetched) {
+            renderCarousel();
+        }
         const genresFetched = await fetchGenres();
         if (genresFetched) {
             renderGenreChips();
@@ -324,38 +361,134 @@ if (window.location.pathname.endsWith('film.html')) {
             });
         }
 
-        // Setup modal control event listeners
+        // Setup modal control event listeners for Sign-In Modal
         const navbarLoginButton = document.getElementById('navbar-login-button');
         if (navbarLoginButton) {
             navbarLoginButton.addEventListener('click', (event) => {
                 event.preventDefault(); // It's an <a> tag
-                toggleSignInModal();
+                toggleModal('signin-modal');
             });
         }
 
-        const modalCloseButton = document.getElementById('signin-modal-close-button');
-        if (modalCloseButton) {
-            modalCloseButton.addEventListener('click', toggleSignInModal);
+        const signinModalCloseButton = document.getElementById('signin-modal-close-button');
+        if (signinModalCloseButton) {
+            signinModalCloseButton.addEventListener('click', () => toggleModal('signin-modal'));
         }
 
-        const modalCancelButton = document.getElementById('signin-modal-cancel-button');
-        if (modalCancelButton) {
-            modalCancelButton.addEventListener('click', toggleSignInModal);
+        const signinModalCancelButton = document.getElementById('signin-modal-cancel-button');
+        if (signinModalCancelButton) {
+            signinModalCancelButton.addEventListener('click', () => toggleModal('signin-modal'));
         }
 
-        const modalBackground = document.querySelector('#signin-modal .modal-background');
-        if (modalBackground) {
-            modalBackground.addEventListener('click', toggleSignInModal);
+        const signinModalBackground = document.querySelector('#signin-modal .modal-background');
+        if (signinModalBackground) {
+            signinModalBackground.addEventListener('click', () => toggleModal('signin-modal'));
+        }
+
+        // Setup modal control event listeners for Register Modal (on index.html)
+        const registerModalCloseButtonIndex = document.getElementById('register-modal-close-button');
+        if (registerModalCloseButtonIndex) {
+            registerModalCloseButtonIndex.addEventListener('click', () => toggleModal('register-modal'));
+        }
+
+        const registerModalCancelButtonIndex = document.getElementById('register-modal-cancel-button');
+        if (registerModalCancelButtonIndex) {
+            registerModalCancelButtonIndex.addEventListener('click', () => toggleModal('register-modal'));
+        }
+
+        const registerModalBackgroundIndex = document.querySelector('#register-modal .modal-background');
+        if (registerModalBackgroundIndex) {
+            registerModalBackgroundIndex.addEventListener('click', () => toggleModal('register-modal'));
+        }
+
+        // Delegated event listeners for "Like" buttons on index.html
+        const cardsContainer = document.querySelector('.cards-container');
+        if (cardsContainer) {
+            cardsContainer.addEventListener('click', function(event) {
+                const likeButton = event.target.closest('.like-button');
+                if (likeButton) {
+                    handleLikeButtonClick(event);
+                }
+            });
+        }
+
+        const carouselContainer = document.getElementById('top-movies-carousel');
+        if (carouselContainer) {
+            carouselContainer.addEventListener('click', function(event) {
+                const likeButton = event.target.closest('.like-button');
+                if (likeButton) {
+                    handleLikeButtonClick(event);
+                }
+            });
         }
     }
     initializeIndexPage();
 }
 
-function toggleSignInModal() {
-    const modal = document.getElementById('signin-modal');
+// General modal toggle function
+function toggleModal(modalId) {
+    const modal = document.getElementById(modalId);
     if (modal) {
         modal.classList.toggle('is-active');
+    } else {
+        console.error(`Modal with ID '${modalId}' not found.`);
     }
+}
+// function toggleSignInModal() { // Removed as toggleModal is now generic
+//     const modal = document.getElementById('signin-modal');
+//     if (modal) {
+//         modal.classList.toggle('is-active');
+//     }
+// }
+
+function renderCarousel() {
+    const carouselContainer = document.getElementById('top-movies-carousel');
+    if (!carouselContainer) {
+        console.error('Carousel container #top-movies-carousel not found.');
+        return;
+    }
+    if (!topPopularMovies || topPopularMovies.length === 0) {
+        console.log('No top popular movies to render in carousel.');
+        carouselContainer.innerHTML = '<p class="has-text-centered">Could not load top movies.</p>'; // Or keep it empty
+        return;
+    }
+
+    carouselContainer.innerHTML = ''; // Clear any existing content
+
+    topPopularMovies.forEach(movie => {
+        const item = document.createElement('div');
+        item.classList.add('carousel-item');
+
+        const posterUrl = movie.poster_path
+            ? `https://image.tmdb.org/t/p/w300${movie.poster_path}`
+            : 'https://via.placeholder.com/300x450.png?text=No+Image';
+
+        item.innerHTML = `
+            <figure class="image is-2by3">
+              <img src="${posterUrl}" alt="${movie.title}">
+            </figure>
+            <p class="carousel-item-title has-text-centered is-size-7">${movie.title}</p>
+            <button class="button is-small is-fullwidth like-button" data-movie-id="${movie.id}" aria-label="Like ${movie.title}">
+              <span class="icon is-small"><i class="fas fa-heart"></i></span>
+              <span>Like</span>
+            </button>
+        `;
+        carouselContainer.appendChild(item);
+    });
+}
+
+function handleLikeButtonClick(event) {
+    // event.preventDefault(); // Usually not needed for <button type="button">
+    const likeButton = event.target.closest('.like-button');
+    // The check for likeButton is implicitly handled by event.target.closest,
+    // but an explicit check doesn't hurt if we want to be super sure or add specific logic if it's not found.
+    if (!likeButton) return;
+
+    const movieId = likeButton.dataset.movieId;
+    console.log(`Like button clicked for movie ID: ${movieId}`);
+
+    // For now, always open the register modal
+    toggleModal('register-modal');
 }
 
 function handleSearch() {
@@ -379,4 +512,22 @@ function handleSearch() {
         // console.log(`Searching for query: ${query}`);
     }
     fetchMovies(1, false); // Fetch page 1 of new results (not loading more)
+}
+
+async function fetchTopPopularMovies(count = 10) {
+    const url = 'https://api.themoviedb.org/3/movie/popular?language=en-US&page=1';
+    try {
+        const response = await fetch(url, options);
+        if (!response.ok) {
+            console.error('Error fetching top popular movies:', response.status, response.statusText);
+            return false;
+        }
+        const data = await response.json();
+        topPopularMovies = data.results.slice(0, count);
+        console.log('Top popular movies fetched:', topPopularMovies);
+        return true;
+    } catch (error) {
+        console.error('Error fetching top popular movies:', error);
+        return false;
+    }
 }

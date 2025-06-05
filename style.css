@@ -22,3 +22,59 @@ img {
     z-index: 2;
     opacity: 0.8;
 }
+
+/* Carousel Styling */
+#top-movies-carousel {
+    display: flex; /* Arrange items in a row */
+    overflow-x: auto; /* Enable horizontal scrolling */
+    overflow-y: hidden; /* Hide vertical scrollbar if any */
+    padding-bottom: 1rem; /* Space for scrollbar without cutting off content */
+    align-items: flex-start; /* Align items to the top */
+}
+
+.carousel-item {
+    flex: 0 0 auto; /* Prevent items from shrinking/growing, respect their basis size */
+    width: 200px; /* Width for carousel items */
+    margin-right: 1rem;
+    /* Optional styling below, can be uncommented or adjusted */
+    /* background-color: #fff; */
+    /* border-radius: 0.25rem; */
+    /* box-shadow: 0 2px 3px rgba(10, 10, 10, 0.1); */
+}
+
+.carousel-item:last-child {
+    margin-right: 0; /* No margin for the last item */
+}
+
+.carousel-item figure.image { /* Ensure image scales well within the item */
+    margin-bottom: 0.5rem;
+}
+
+.carousel-item .carousel-item-title {
+    padding: 0 0.5rem; /* Padding for title */
+    min-height: 3em; /* Give some space for multi-line titles (approx 2 lines for is-size-7) */
+    margin-bottom: 0.5rem;
+    word-break: break-word; /* Prevent long titles from breaking layout */
+    line-height: 1.5; /* Ensure consistent line height for titles */
+}
+
+.carousel-item .like-button { /* Specific styling for like button in carousel */
+    margin: 0 0.5rem 0.5rem 0.5rem; /* Top, Right, Bottom, Left margins */
+    width: calc(100% - 1rem); /* Adjust width to account for side margins */
+}
+
+/* Like Button Icon Styling (General) */
+.like-button .icon .fa-heart { /* Target the Font Awesome heart icon */
+    color: #ccc; /* Default color for the heart */
+    transition: color 0.3s ease;
+}
+
+.like-button:hover .icon .fa-heart {
+    color: #ff3860; /* Bulma's danger color for hover */
+}
+
+/* Example for an 'is-liked' class if we were to implement that state:
+.like-button.is-liked .icon .fa-heart {
+    color: #ff3860;
+}
+*/
